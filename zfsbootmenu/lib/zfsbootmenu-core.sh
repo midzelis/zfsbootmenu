@@ -300,23 +300,32 @@ kexec_kernel() {
 
   cli_args="$( load_be_cmdline "${fs}" )"
   root_prefix="$( find_root_prefix "${fs}" "${mnt}" )"
+  initrd="${mnt}${initramfs}"
+  patched_initrd="/tmp/$(basename "$initrd")-with-key"
+
+  if [ -d /run/zbm_keys ] && [[ "$(ls /run/zbm_keys)" ]]; then
+    zdebug "patching $initrd with user entered keys into $patched_initrd"
+    cp "$initrd" "$patched_initrd"
+    find /run/zbm_keys -depth -print | pax -s "/\/run\/zbm_keys//" -x sv4cpio -wd | zstd >> "$patched_initrd"
+    initrd="$patched_initrd"
+  fi
 
   if ! output="$( kexec -a -l "${mnt}${kernel}" \
-    --initrd="${mnt}${initramfs}" \
+    --initrd="$initrd" \
     --command-line="${root_prefix}${fs} ${cli_args}" 2>&1 )"
   then
-    zerror "unable to load ${mnt}${kernel} and ${mnt}${initramfs} into memory"
+    zerror "unable to load ${mnt}${kernel} and $initrd into memory"
     zerror "${output}"
     umount "${mnt}"
     timed_prompt -d 10 \
       -m "$( colorize red 'Unable to load kernel or initramfs into memory' )" \
       -m "$( colorize orange "${mnt}${kernel}" )" \
-      -m "$( colorize orange "${mnt}${initramfs}" )"
+      -m "$( colorize orange "$initrd" )"
 
     return 1
   else
     if zdebug ; then
-      zdebug "loaded ${mnt}${kernel} and ${mnt}${initramfs} into memory"
+      zdebug "loaded ${mnt}${kernel} and $initrd into memory"
       zdebug "kernel command line: '${root_prefix}${fs} ${cli_args}'"
       zdebug "${output}"
     fi
@@ -1728,7 +1737,7 @@ load_key() {
 
   # Otherwise, try to prompt for "passphrase" keys
   keyformat="$( zfs get -H -o value keyformat "${encroot}" )" || keyformat=""
-  if [ "${keyformat}" != "passphrase" ]; then
+  if [ "${keyformat}" != "passphrase" ] && [ "${keyformat}" != "hex" ]; then
     zdebug "unable to load key with format ${keyformat} for ${encroot}"
     return 1
   fi
@@ -1738,9 +1747,27 @@ load_key() {
     tput cup 0 0
   fi
 
-  zdebug "prompting for passphrase for ${encroot}"
-  zfs load-key -L prompt "${encroot}"
-  return $?
+  zdebug "prompting for key for ${encroot}"
+  printf "Found encrypted filesystem %s (encryptionroot=%s). To skip, press return.\n\n(Skipping unlock in 10 seconds...)\n\n" $fs $encroot
+  for i in $(seq 1 3); do
+    read -t 10 -sp "To unlock, enter $keyformat format key for $encroot:  " keyinput
+    if [ -z "$keyinput" ]; then
+      printf "\n\n"
+      return 1
+    fi
+    echo "$keyinput" | zfs load-key -L prompt "${encroot}"
+    ret=$?
+    printf "\n\n"
+    if (( $ret == 0 )); then
+      zdebug "saving manually prompted key ${encroot}"
+      keydir=$(dirname $key)
+      keyfile=$(basename $key)
+      mkdir -p /run/zbm_keys/$keydir
+      echo "$keyinput" > /run/zbm_keys/$keydir/$keyfile
+      break
+    fi
+  done
+  return $ret
 }
 
 # arg1: ZFS filesystem

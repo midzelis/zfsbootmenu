@@ -831,7 +831,8 @@ sub createInitramfs {
 
     $flagsKey = "InitCPIOFlags";
   } else {
-    push( @cmd, ( qw(dracut -f --confdir), $runConf{confd} ) );
+    # for debug - TODO: make this an option to generate-zdm, like -dd
+    push( @cmd, ( qw(dracut --debug -f --confdir), $runConf{confd} ) );
     push( @cmd, qw(-q) ) unless $runConf{debug};
 
     $flagsKey = "DracutFlags";

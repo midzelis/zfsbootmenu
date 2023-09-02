@@ -594,7 +594,10 @@ populate_be_list() {
     rm -f "$( be_location "${fs}" )/cmdline"
 
     # Unlock if necessary
-    load_key "${fs}" || continue
+    if ! load_key "${fs}"; then
+      zdebug "could not load key for ${fs}"
+      continue
+    fi
 
     # Candidates are added to BE list if they have kernels in /boot
     if find_be_kernels "${fs}"; then

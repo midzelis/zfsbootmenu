@@ -38,6 +38,14 @@ zfsbootmenu_essential_binaries=(
   "fzf"
   "setsid"
   "cat"
+  "basename"
+  "dirname"
+  "seq"
+  "df"
+  "pax"
+  "find"
+  "zstd"
+  "cpio"
 )
 
 # shellcheck disable=SC2034
