@@ -1,2 +1,3 @@
 #!/bin/bash
-tailscaled --statedir=/var/lib/tailscale > /dev/kmsg 2>&1 &
+mkdir -p /var/log/tailscale
+tailscaled --statedir=/var/lib/tailscale &> /var/log/tailscale/tailscale.log &

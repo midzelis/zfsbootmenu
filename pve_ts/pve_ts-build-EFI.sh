@@ -2,7 +2,7 @@
 
 # debug mode
 # the first time you launch, it will ask you to login to tailscale
-docker run -it \
+docker run --rm -it \
     -v "$(pwd)"/buildroot:/buildroot \
     -v "$(pwd)"/../:/zfsbootmenu \
     -v "$(pwd)"/output:/build/build \
@@ -11,7 +11,7 @@ docker run -it \
     zbuilder -- -d
 
 # interactive mode (debugging)
-# docker run -it \
+# docker run --rm -it \
 #     -v "$(pwd)"/buildroot:/buildroot \
 #     -v "$(pwd)"/../:/zfsbootmenu \
 #     -v "$(pwd)"/output:/build/build \
