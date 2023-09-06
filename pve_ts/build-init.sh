@@ -81,12 +81,14 @@ while getopts "hb:o:t:e:p:" opt; do
       exit 1
   esac
 done
+// TODO find out if these need to be exported
 export BUILDROOT="${BUILDROOT:=/build}"
 export ZBMOUTPUT="${ZBMOUTPUT:=${BUILDROOT}/build}"
 export ZBMTAG
 
+set -x
 # If a custom container-boot.d exists, run every executable file therein
-for rfile in /container-boot/rc.d/*; do
+for rfile in /container-boot.d/*; do
   [ -x "${rfile}" ] || continue
   "${rfile}" || error "failed to run container-boot script ${rfile##*/}"
 done

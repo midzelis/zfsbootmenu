@@ -79,6 +79,10 @@ zfsbootmenu_optional_modules=(
   "zlib_inflate"
 )
 
+set -x
+echo "hello"
+env
+
 create_zbm_conf() {
   # Create core ZBM configuration file
 

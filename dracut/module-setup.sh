@@ -31,6 +31,8 @@ installkernel() {
 install() {
   : "${zfsbootmenu_module_root:=/usr/share/zfsbootmenu}"
 
+echo "bye"
+set -x
   # shellcheck disable=SC1091
   if ! source "${zfsbootmenu_module_root}/install-helpers.sh" ; then
     dfatal "Unable to source ${zfsbootmenu_module_root}/install-helpers.sh"
