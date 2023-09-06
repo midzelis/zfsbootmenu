@@ -70,6 +70,7 @@ GetOptions(
   "initcpio|i!" => \$runConf{usecpio},
   "hookd|H=s@"  => \$runConf{cpio_hookd},
   "debug|d"     => \$runConf{debug},
+  "dracutdebug|dd" => \$runConf{dracutdebug},
   "showver|V"   => \$runConf{showver},
   "help|h"      => sub {
     pod2usage( -verbose => 2 );
@@ -831,9 +832,11 @@ sub createInitramfs {
 
     $flagsKey = "InitCPIOFlags";
   } else {
-    # for debug - TODO: make this an option to generate-zdm, like -dd
-    push( @cmd, ( qw(dracut --debug -f --confdir), $runConf{confd} ) );
-    push( @cmd, qw(-q) ) unless $runConf{debug};
+
+    push( @cmd, 'dracut') ;
+    push( @cmd, '--debug' ) if $runConf{dracutdebug} ;
+    push( @cmd, ( qw(-f --confdir), $runConf{confd} ) );
+    push( @cmd, '-q' ) unless $runConf{debug};
 
     $flagsKey = "DracutFlags";
   }

@@ -1,18 +1,6 @@
 #!/bin/bash
 # vim: softtabstop=2 shiftwidth=2 expandtab
 
-# I launch my docker containers on a host that uses NFS to mount this
-# git repo, and dracut copies all files using cp --preserve which fails
-# The easiest way for me to fix that is to bind mount the inputs to the build
-# and then copy them to a folder within the container. 
-if [ -d  "/buildroot" ]; then
-  mkdir -p /build
-  cp -R /buildroot/* /build
-fi
-if [ -d  "/zfsbootmenu" ]; then
-  mkdir -p /zbm
-  cp -R /zfsbootmenu/* /zbm
-fi
 
 cleanup() {
   if [ -n "${ZBMWORKDIR}" ]; then
@@ -64,9 +52,9 @@ Usage: $0 [options]
 EOF
 }
 
-PACKAGES=()
-CONFIGEVALS=()
-GENARGS=()
+export PACKAGES=()
+export CONFIGEVALS=()
+export GENARGS=()
 while getopts "hb:o:t:e:p:" opt; do
   case "${opt}" in
     b)
@@ -93,6 +81,16 @@ while getopts "hb:o:t:e:p:" opt; do
       exit 1
   esac
 done
+export BUILDROOT="${BUILDROOT:=/build}"
+export ZBMOUTPUT="${ZBMOUTPUT:=${BUILDROOT}/build}"
+export ZBMTAG
+
+# If a custom container-boot.d exists, run every executable file therein
+for rfile in /container-boot/rc.d/*; do
+  [ -x "${rfile}" ] || continue
+  "${rfile}" || error "failed to run container-boot script ${rfile##*/}"
+done
+
 
 # Start processing everything after --
 shift $((OPTIND-1))
@@ -168,11 +166,9 @@ ln -Tsf "${dracutmod}" /usr/lib/dracut/modules.d/90zfsbootmenu \
   || error "unable to link dracut module"
 
 # Make sure the build root exists
-: "${BUILDROOT:=/build}"
 mkdir -p "${BUILDROOT}" || error "unable to create directory '${BUILDROOT}'"
 
 # Make sure that the output directory exists
-: "${ZBMOUTPUT:=${BUILDROOT}/build}"
 mkdir -p "${ZBMOUTPUT}" || error "unable to create directory '${ZBMOUTPUT}'"
 
 # Add forced overrides to the end of CONFIGEVALS

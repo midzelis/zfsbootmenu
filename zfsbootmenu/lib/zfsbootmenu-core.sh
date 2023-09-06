@@ -303,6 +303,18 @@ kexec_kernel() {
   initrd="${mnt}${initramfs}"
   patched_initrd="/tmp/$(basename "$initrd")-with-key"
 
+  if [ -d /libexec/process-initrd.d ]; then
+    # Create tmpfs 
+    cp "$initrd" "/tmp/$initrd"
+    for hook in /libexec/process-initrd.d/*; do
+      [ -x "${hook}" ] || continue
+      zinfo "Processing hook: ${hook}"
+      env "ZBM_SELECTED_INITRAMFS=${initramfs}" \
+        "ZBM_SELECTED_KERNEL=${kernel}" "ZBM_SELECTED_BE=${fs}" "${hook}" "/tmp/$initrd"
+    done
+    unset hook
+  fi
+
   if [ -d /run/zbm_keys ] && [[ "$(ls /run/zbm_keys)" ]]; then
     zdebug "patching $initrd with user entered keys into $patched_initrd"
     cp "$initrd" "$patched_initrd"
