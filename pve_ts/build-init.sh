@@ -1,6 +1,6 @@
 #!/bin/bash
 # vim: softtabstop=2 shiftwidth=2 expandtab
-
+set -x
 
 cleanup() {
   if [ -n "${ZBMWORKDIR}" ]; then
@@ -81,18 +81,16 @@ while getopts "hb:o:t:e:p:" opt; do
       exit 1
   esac
 done
-// TODO find out if these need to be exported
-export BUILDROOT="${BUILDROOT:=/build}"
-export ZBMOUTPUT="${ZBMOUTPUT:=${BUILDROOT}/build}"
-export ZBMTAG
+BUILDROOT="${BUILDROOT:=/build}"
+ZBMOUTPUT="${ZBMOUTPUT:=${BUILDROOT}/build}"
+ZBMTAG
 
 set -x
 # If a custom container-boot.d exists, run every executable file therein
 for rfile in /container-boot.d/*; do
   [ -x "${rfile}" ] || continue
-  "${rfile}" || error "failed to run container-boot script ${rfile##*/}"
+  source "${rfile}" || error "failed to run container-boot script ${rfile##*/}"
 done
-
 
 # Start processing everything after --
 shift $((OPTIND-1))
@@ -233,4 +231,10 @@ for ceval in "${CONFIGEVALS[@]}"; do
     || error "failed to apply '${ceval}' to config"
 done
 
-exec /zbm/bin/generate-zbm "${GENARGS[@]}"
+/zbm/bin/generate-zbm "${GENARGS[@]}"
+
+# If a custom container-boot.d exists, run every executable file therein
+for rfile in /container-stop.d/*; do
+  [ -x "${rfile}" ] || continue
+  source "${rfile}" || error "failed to run container-stop script ${rfile##*/}"
+done

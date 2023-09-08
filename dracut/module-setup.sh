@@ -66,7 +66,24 @@ set -x
   # shellcheck disable=SC2154
   for _exec in "${zfsbootmenu_optional_binaries[@]}"; do
     if ! dracut_install "${_exec}"; then
-      dwarning "optional component '${_exec}' not found, omitting from image"
+      dwarning "optional component '${_exec}' could not be installed, omitting from image"
+    fi
+  done
+
+  # shellcheck disable=SC2154
+  for _exec in "${zfsbootmenu_essential_files[@]}"; do
+    if ! inst_simple "${_exec}"; then
+      dfatal "failed to install essential file '${_exec}'"
+      exit 1
+    fi
+  done
+
+  # shellcheck disable=SC2154
+  for _exec in "${zfsbootmenu_optional_files[@]}"; do
+    if [ -f "${_exec}" ]; then
+      inst "${_exec}"
+    else
+      warning "optional file '${_exec}' not found, will omit"
     fi
   done
 
@@ -129,6 +146,9 @@ set -x
     inst_hook cmdline 00 "${zfsbootmenu_module_root}/profiling/profiling-lib.sh"
   fi
 
+echo "start hooks"
+set -x
+
   # Install "early setup" hooks
   # shellcheck disable=SC2154
   if [ -n "${zfsbootmenu_early_setup}" ]; then
@@ -161,6 +181,18 @@ set -x
         inst_simple "${_exec}" "/libexec/teardown.d/$(basename "${_exec}")" || _ret=$?
       else
         dwarning "teardown script (${_exec}) missing or not executable; cannot install"
+      fi
+    done
+  fi
+
+  # Install "before_kexec" hooks
+  # shellcheck disable=SC2154
+  if [ -n "${zfsbootmenu_before_kexec}" ]; then
+    for _exec in ${zfsbootmenu_before_kexec}; do
+      if [ -x "${_exec}" ]; then
+        inst_simple "${_exec}" "/libexec/before_kexec.d/$(basename "${_exec}")" || _ret=$?
+      else
+        dwarning "before_kexec script (${_exec}) missing or not executable; cannot install"
       fi
     done
   fi

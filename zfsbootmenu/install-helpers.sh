@@ -1,7 +1,6 @@
 #!/bin/bash
 # vim: softtabstop=2 shiftwidth=2 expandtab
 
-# shellcheck disable=SC2034
 zfsbootmenu_essential_binaries=(
   "bash"
   "zfs"
@@ -38,30 +37,22 @@ zfsbootmenu_essential_binaries=(
   "fzf"
   "setsid"
   "cat"
-  "basename"
-  "dirname"
-  "seq"
-  "df"
-  "pax"
-  "find"
-  "zstd"
-  "cpio"
 )
+mapfile -t -O "${#zfsbootmenu_essential_binaries[@]}" zfsbootmenu_essential_binaries < <(yq-go e '.Image.zfsbootmenu_essential_binaries[] | .. style=""' "$BUILDROOT"/config.yaml)
 
-# shellcheck disable=SC2034
 zfsbootmenu_optional_binaries=(
   "mbuffer"
   "column"
 )
+mapfile -t -O "${#zfsbootmenu_optional_binaries[@]}" zfsbootmenu_optional_binaries < <(yq-go e '.Image.zfsbootmenu_optional_binaries[] | .. style=""' "$BUILDROOT"/config.yaml)
 
-# shellcheck disable=SC2034
 zfsbootmenu_udev_rules=(
   "90-zfs.rules"
   "69-vdev.rules"
   "60-zvol.rules"
 )
+mapfile -t -O "${#zfsbootmenu_udev_rules[@]}" zfsbootmenu_udev_rules < <(yq-go e '.Image.zfsbootmenu_udev_rules[] | .. style=""' "$BUILDROOT"/config.yaml)
 
-# shellcheck disable=SC2034
 zfsbootmenu_essential_modules=(
   "zfs"
   "zcommon"
@@ -72,16 +63,30 @@ zfsbootmenu_essential_modules=(
   "icp"
   "spl"
 )
+mapfile -t -O "${#zfsbootmenu_essential_modules[@]}" zfsbootmenu_essential_modules < <(yq-go e '.Image.zfsbootmenu_essential_modules[] | .. style=""' "$BUILDROOT"/config.yaml)
 
-# shellcheck disable=SC2034
 zfsbootmenu_optional_modules=(
   "zlib_deflate"
   "zlib_inflate"
 )
+mapfile -t -O "${#zfsbootmenu_optional_modules[@]}" zfsbootmenu_optional_modules < <(yq-go e '.Image.zfsbootmenu_optional_modules[] | .. style=""' "$BUILDROOT"/config.yaml)
 
-set -x
-echo "hello"
-env
+zfsbootmenu_essential_files=()
+mapfile -t -O "${#zfsbootmenu_essential_files[@]}" zfsbootmenu_essential_files < <(yq-go e '.Image.zfsbootmenu_essential_files[] | .. style=""' "$BUILDROOT"/config.yaml)
+
+zfsbootmenu_optional_files=(
+  "/etc/zbm-commit-hash"
+)
+mapfile -t -O "${#zfsbootmenu_optional_files[@]}" zfsbootmenu_optional_files < <(yq-go e '.Image.zfsbootmenu_optional_files[] | .. style=""' "$BUILDROOT"/config.yaml)
+
+# shellcheck disable=SC2097,SC2098
+zfsbootmenu_early_setup+=$(BUILDROOT=$BUILDROOT yq-go e '.Hooks.zfsbootmenu_early_setup[]' "$BUILDROOT"/config.yaml | tr '\n' ' ')
+# shellcheck disable=SC2097,SC2098
+zfsbootmenu_setup+=$(BUILDROOT=$BUILDROOT yq-go e '.Hooks.zfsbootmenu_setup[]' "$BUILDROOT"/config.yaml | tr '\n' ' ')
+# shellcheck disable=SC2097,SC2098
+zfsbootmenu_before_kexec+=$(BUILDROOT=$BUILDROOT yq-go e '.Hooks.zfsbootmenu_before_kexec[]' "$BUILDROOT"/config.yaml | tr '\n' ' ')
+# shellcheck disable=SC2097,SC2098
+zfsbootmenu_teardown+=$(BUILDROOT=$BUILDROOT yq-go e '.Hooks.zfsbootmenu_teardown[]' "$BUILDROOT"/config.yaml | tr '\n' ' ')
 
 create_zbm_conf() {
   # Create core ZBM configuration file

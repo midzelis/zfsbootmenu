@@ -15,3 +15,38 @@ EFI:
 Kernel:
   # Set ZBM command-line options for the EFI bundle here
   CommandLine: zfsbootmenu ro quiet loglevel=4 nomodeset
+Image:
+  zfsbootmenu_essential_binaries:
+    # The following for ramkeys
+    - basename
+    - dirname
+    - seq
+    - df
+    - pax
+    - find
+    - zstd
+    - cpio
+    # The following for tailscale 
+    - tailscale
+    - tailscaled
+    - iptables
+    - ip6tables
+  zfsbootmenu_optional_binaries:
+    # just nice to have
+    - vi
+    - curl
+  zfsbootmenu_essential_files:
+    # The following for tailscale 
+    - /var/lib/tailscale/tailscaled.state
+  zfsbootmenu_optional_files: 
+    - /zbm/bin/zbm-kcl
+    - /etc/zbm-commit-hash
+  zfsbootmenu_udev_rules:
+  zfsbootmenu_essential_modules:
+  zfsbootmenu_optional_modules:
+Hooks:
+  zfsbootmenu_before_kexec:
+  zfsbootmenu_early_setup:
+  zfsbootmenu_setup:
+  zfsbootmenu_teardown:
+    - $BUILDROOT/stop-tailscale.sh
