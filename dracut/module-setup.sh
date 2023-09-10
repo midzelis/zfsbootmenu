@@ -11,28 +11,108 @@ depends() {
   return 0
 }
 
-installkernel() {
-  local mod
 
-  # shellcheck disable=SC2154
-  for mod in "${zfsbootmenu_essential_modules[@]}"; do
-    if ! instmods -c "${mod}" ; then
-      dfatal "Required kernel module '${mod}' is missing, aborting image creation!"
+install_essential_mods() {
+   instmods -c "$1"
+}
+
+install_zbm_resource() {
+  local fatal=$1
+  local command=$2
+  local item=$3
+  local msg=$4
+  if ! $command "$item"; then
+    if (( fatal == 1 )); then
+      # shellcheck disable=SC2059
+      [ -n "$msg" ] && dfatal "$(printf "$msg" "$item")"
       exit 1
+    else
+      # shellcheck disable=SC2059
+      [ -n "$msg" ] && dwarning "$(printf "$msg" "$item")"
+    fi
+  fi
+}
+
+expand_pattern() {
+  local saved_globstar expanded
+  if shopt -q globstar; then
+    saved_globstar=-s
+  else
+    saved_globstar=-u
+  fi
+  shopt -s globstar
+  expanded=$(compgen -G "$1")
+  shopt $saved_globstar globstar
+  echo "$expanded"
+}
+
+install_zbm_resources() {
+  local fatal=$1
+  local command=$2
+  local -n array=$3
+  local msg=$4
+  local item
+  local dir
+  local expanded
+  set -x
+  for item in "${array[@]}"; do
+    # is the pattern a glob pattern?
+    if [[ $item =~ [\*\[\{\^\|] ]]; then
+      if [ "$command" = inst_library ]; then
+        # shellcheck disable=SC2154
+        for dir in $libdirs; do
+          for expanded in $(expand_pattern "$dir/$item"); do
+            install_zbm_resource "$fatal" "$command" "$expanded" "$msg"
+          done
+        done
+      elif [ "$command" = install_essential_mods ] || [ "$command" = instmods ]; then
+        # shellcheck disable=SC2154
+        for expanded in $(expand_pattern "$srcmods/kernel/$item"); do
+          install_zbm_resource "$fatal" "$command" "$expanded" "$msg"
+        done
+      else 
+        for expanded in $(expand_pattern "$item"); do
+          install_zbm_resource "$fatal" "$command" "$expanded" "$msg"
+        done
+      fi
+    else
+      install_zbm_resource "$fatal" "$command" "$item" "$msg"
     fi
   done
+}
 
-  # shellcheck disable=SC2154
-  for mod in "${zfsbootmenu_optional_modules[@]}"; do
-    instmods "${mod}"
-  done
+install_optional_file() {
+  if [ -f "$1" ]; then
+    inst "$1"
+  else
+    return 1
+  fi
+}
+
+install_zbm_hooks() {
+    local files=$1
+    local hookname=$2
+    local msg=$2
+    local _exec
+    if [ -n "${files}" ]; then
+      for _exec in ${files}; do
+        if [ -x "${_exec}" ]; then
+          inst_simple "${_exec}" "/libexec/$hookname/$(basename "${_exec}")"
+        else
+          dwarning "$(printf  "%s script (%s) missing or not executable; cannot install" "$hookname" "$_exec")"
+        fi
+      done
+    fi
+}
+
+installkernel() {
+  install_zbm_resources 1 install_essential_mods zfsbootmenu_essential_modules "Required kernel module '%s' is missing, aborting image creation!"
+  install_zbm_resources 0 instmods zfsbootmenu_optional_modules 
 }
 
 install() {
   : "${zfsbootmenu_module_root:=/usr/share/zfsbootmenu}"
 
-echo "bye"
-set -x
   # shellcheck disable=SC1091
   if ! source "${zfsbootmenu_module_root}/install-helpers.sh" ; then
     dfatal "Unable to source ${zfsbootmenu_module_root}/install-helpers.sh"
@@ -45,47 +125,16 @@ set -x
   # shellcheck disable=SC2034
   BUILDSTYLE="dracut"
 
-  local _rule _exec _ret
-
-  # shellcheck disable=SC2154
-  for _rule in "${zfsbootmenu_udev_rules[@]}"; do
-    if ! inst_rules "${_rule}"; then
-      dfatal "failed to install udev rule '${_rule}'"
-      exit 1
-    fi
-  done
-
-  # shellcheck disable=SC2154
-  for _exec in "${zfsbootmenu_essential_binaries[@]}"; do
-    if ! dracut_install "${_exec}"; then
-      dfatal "failed to install essential executable '${_exec}'"
-      exit 1
-    fi
-  done
-
-  # shellcheck disable=SC2154
-  for _exec in "${zfsbootmenu_optional_binaries[@]}"; do
-    if ! dracut_install "${_exec}"; then
-      dwarning "optional component '${_exec}' could not be installed, omitting from image"
-    fi
-  done
-
-  # shellcheck disable=SC2154
-  for _exec in "${zfsbootmenu_essential_files[@]}"; do
-    if ! inst_simple "${_exec}"; then
-      dfatal "failed to install essential file '${_exec}'"
-      exit 1
-    fi
-  done
-
-  # shellcheck disable=SC2154
-  for _exec in "${zfsbootmenu_optional_files[@]}"; do
-    if [ -f "${_exec}" ]; then
-      inst "${_exec}"
-    else
-      warning "optional file '${_exec}' not found, will omit"
-    fi
-  done
+  local  _ret
+  set -x
+  install_zbm_resources 1 inst_rules zfsbootmenu_udev_rules "failed to install udev rule '%s'"
+  install_zbm_resources 1 dracut_install zfsbootmenu_essential_binaries "failed to install essential binary '%s'"
+  install_zbm_resources 0 dracut_install zfsbootmenu_optional_binaries "optional binary '%s' could not be installed, omitting from image"
+  install_zbm_resources 1 inst_simple zfsbootmenu_essential_files "essential file '%s' could not be installed, omitting from image"
+  install_zbm_resources 0 install_optional_file zfsbootmenu_optional_files "optional file '%s' not found, will omit"
+  echo "essential libraries"
+  install_zbm_resources 1 inst_library zfsbootmenu_essential_libraries "failed to install essential library '%s'"
+  install_zbm_resources 0 inst_library zfsbootmenu_optional_libraries "optional library '%s' not found, will omit"
 
   # Add libgcc_s as appropriate
   local _libgcc_s
@@ -149,53 +198,26 @@ set -x
 echo "start hooks"
 set -x
 
+  # Install keyprompt - there can only be one
+  # shellcheck disable=SC2154
+  if [ -x "${zfsbootmenu_keyprompt}" ]; then
+    inst_simple "${zfsbootmenu_keyprompt}" "/libexec/keyprompt.sh" || _ret=$?
+  else
+    dwarning "setup script (${zfsbootmenu_keyprompt}) missing or not executable; cannot install"
+  fi
+
+  # Install "preprompt" hooks
+  # shellcheck disable=SC2154
+  install_zbm_hooks "$zfsbootmenu_preprompt" preprompt.d || _ret=$?
   # Install "early setup" hooks
   # shellcheck disable=SC2154
-  if [ -n "${zfsbootmenu_early_setup}" ]; then
-    for _exec in ${zfsbootmenu_early_setup}; do
-      if [ -x "${_exec}" ]; then
-        inst_simple "${_exec}" "/libexec/early-setup.d/$(basename "${_exec}")" || _ret=$?
-      else
-        dwarning "setup script (${_exec}) missing or not executable; cannot install"
-      fi
-    done
-  fi
-
+  install_zbm_hooks "$zfsbootmenu_early_setup" early-setup.d || _ret=$?
   # Install "setup" hooks
   # shellcheck disable=SC2154
-  if [ -n "${zfsbootmenu_setup}" ]; then
-    for _exec in ${zfsbootmenu_setup}; do
-      if [ -x "${_exec}" ]; then
-        inst_simple "${_exec}" "/libexec/setup.d/$(basename "${_exec}")" || _ret=$?
-      else
-        dwarning "setup script (${_exec}) missing or not executable; cannot install"
-      fi
-    done
-  fi
-
+  install_zbm_hooks "$zfsbootmenu_setup" setup.d || _ret=$?
   # Install "teardown" hooks
   # shellcheck disable=SC2154
-  if [ -n "${zfsbootmenu_teardown}" ]; then
-    for _exec in ${zfsbootmenu_teardown}; do
-      if [ -x "${_exec}" ]; then
-        inst_simple "${_exec}" "/libexec/teardown.d/$(basename "${_exec}")" || _ret=$?
-      else
-        dwarning "teardown script (${_exec}) missing or not executable; cannot install"
-      fi
-    done
-  fi
-
-  # Install "before_kexec" hooks
-  # shellcheck disable=SC2154
-  if [ -n "${zfsbootmenu_before_kexec}" ]; then
-    for _exec in ${zfsbootmenu_before_kexec}; do
-      if [ -x "${_exec}" ]; then
-        inst_simple "${_exec}" "/libexec/before_kexec.d/$(basename "${_exec}")" || _ret=$?
-      else
-        dwarning "before_kexec script (${_exec}) missing or not executable; cannot install"
-      fi
-    done
-  fi
+  install_zbm_hooks "$zfsbootmenu_teardown" teardown.d || _ret=$?
 
   if [ ${_ret} -ne 0 ]; then
     dfatal "Unable to install core ZFSBootMenu functions"

@@ -83,7 +83,7 @@ while getopts "hb:o:t:e:p:" opt; do
 done
 BUILDROOT="${BUILDROOT:=/build}"
 ZBMOUTPUT="${ZBMOUTPUT:=${BUILDROOT}/build}"
-ZBMTAG
+ZBMTAG="${BUILDROOT:-''}"
 
 set -x
 # If a custom container-boot.d exists, run every executable file therein
@@ -231,10 +231,11 @@ for ceval in "${CONFIGEVALS[@]}"; do
     || error "failed to apply '${ceval}' to config"
 done
 
-/zbm/bin/generate-zbm "${GENARGS[@]}"
+if /zbm/bin/generate-zbm "${GENARGS[@]}"; then
+  # If a custom container-stop.d exists, run every executable file therein
+  for rfile in /container-stop.d/*; do
+    [ -x "${rfile}" ] || continue
+    source "${rfile}" || error "failed to run container-stop script ${rfile##*/}"
+  done
+fi
 
-# If a custom container-boot.d exists, run every executable file therein
-for rfile in /container-stop.d/*; do
-  [ -x "${rfile}" ] || continue
-  source "${rfile}" || error "failed to run container-stop script ${rfile##*/}"
-done

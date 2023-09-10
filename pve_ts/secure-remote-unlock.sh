@@ -1,7 +1,9 @@
 #!/bin/bash
 set -x
 
-cont=podman
+mkdir -p "$(pwd)"/output
+
+cont=docker
 
 start-podman() {
     podman machine start
@@ -28,6 +30,7 @@ build() {
         -v /dev/net/tun:/dev/net/tun \
         --cap-add=NET_ADMIN  \
         zbuilder -- -d
+    mv output/boot-vfs.raw /LUNA/ALPHA/PVE_VIRTUAL_MACHINES/NFS_DISKS/images/2200/vm-2200-disk-0.raw
 }
 # build an image - extra debug info
 build-debug() {

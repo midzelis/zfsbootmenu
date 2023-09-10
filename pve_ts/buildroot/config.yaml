@@ -14,7 +14,8 @@ EFI:
   # The ZBM build container *forces* EFI.ImageDir
 Kernel:
   # Set ZBM command-line options for the EFI bundle here
-  CommandLine: zfsbootmenu ro quiet loglevel=4 nomodeset
+  CommandLine: zfsbootmenu ro loglevel=4 
+  #rd.driver.blacklist=nf_tables,nfnetlink,nf_conntrack,nf_conntrack_ipv4,nf_conntrack_ipv6
 Image:
   zfsbootmenu_essential_binaries:
     # The following for ramkeys
@@ -26,15 +27,36 @@ Image:
     - find
     - zstd
     - cpio
+    # formatting
+    - gum
+    # important base network
+    - ip
+    - dhclient
+    - dhclient-script
+    - sed
+    - touch
+    # ssh server
+    - dropbear
     # The following for tailscale 
     - tailscale
     - tailscaled
-    - iptables
-    - ip6tables
+    - /usr/sbin/iptables*
+    - /usr/sbin/ip6tables*
+    - update-alternatives
+    # debug
+    - strace
   zfsbootmenu_optional_binaries:
     # just nice to have
     - vi
     - curl
+    - which
+    - du
+    # nice for network
+    - nc 
+    - ping
+    - ping4
+    - ping6
+    - ss
   zfsbootmenu_essential_files:
     # The following for tailscale 
     - /var/lib/tailscale/tailscaled.state
@@ -42,11 +64,17 @@ Image:
     - /zbm/bin/zbm-kcl
     - /etc/zbm-commit-hash
   zfsbootmenu_udev_rules:
+  zfsbootmenu_essential_libraries:
+    - xtables/*
   zfsbootmenu_essential_modules:
-  zfsbootmenu_optional_modules:
+    - net/**/*.ko*
+  zfsbootmenu_keyprompt: /build/keyprompt.sh
 Hooks:
+  zfsbootmenu_preprompt: 
+    - /build/tailscale-start.sh
   zfsbootmenu_before_kexec:
+    - /build/keyramcopy.sh
   zfsbootmenu_early_setup:
   zfsbootmenu_setup:
   zfsbootmenu_teardown:
-    - $BUILDROOT/stop-tailscale.sh
+    - /build/tailscale-stop.sh

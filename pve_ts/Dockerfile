@@ -15,11 +15,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN sed -r -i 's/^Components:(.*)$/Components:\1 contrib main non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources
 
+
 # first update and install essential packages: ca-certificates and apt-utils
-RUN apt-get update && apt-get install -y ca-certificates apt-utils
+RUN apt-get update && apt-get install -y ca-certificates apt-utils gpg
 ADD https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg  /usr/share/keyrings/tailscale-archive-keyring.gpg 
 RUN chmod o+r /usr/share/keyrings/tailscale-archive-keyring.gpg
 ADD https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list /etc/apt/sources.list.d/tailscale.list
+# gum
+RUN mkdir -p /etc/apt/keyrings
+ADD https://repo.charm.sh/apt/gpg.key /tmp
+RUN cat /tmp/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+RUN echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | tee /etc/apt/sources.list.d/charm.list
 RUN apt-get update
 
 # no systemd
@@ -50,12 +56,12 @@ ENV LANGUAGE en_US.UTF-8
 ADD https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 /usr/bin/yq-go 
 RUN chmod +x /usr/bin/yq-go
 
+
 # zfsbootmenu: build perl deps
-RUN cpan  'Sort::Versions' 'YAML::PP' 'boolean' 
-RUN git clone https://github.com/dracut-crypt-ssh/dracut-crypt-ssh.git
-WORKDIR dracut-crypt-ssh
-RUN ./configure && make && make install
-WORKDIR /
+RUN cpan  'Sort::Versions' 'YAML::PP' 'boolean' 'IPC::Run3'
+
+# For testing: to create full partitions easy to put into qemu
+RUN apt-get install -y mtools iputils-ping netcat-traditional mbuffer pv strace  gum
 
 COPY build-init.sh /build-init.sh
 ENTRYPOINT [ "/build-init.sh" ]

@@ -13,7 +13,7 @@
 # brew install --head qemu-hvf
 # brew install ovmf
 
-apt-get install -y mtools
+
 out="$ZBMOUTPUT/boot-vfs.raw"
 rm -f out
 dd if=/dev/zero of="$out" bs=1M count=256

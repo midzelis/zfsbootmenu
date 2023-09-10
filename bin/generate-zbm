@@ -15,6 +15,7 @@ use File::stat;
 use File::Path qw(make_path remove_tree);
 use File::Glob qw(:globally :nocase);
 use Sort::Versions;
+use IPC::Run3;
 
 use Pod::Usage qw(pod2usage);
 
@@ -36,6 +37,7 @@ sub latestKernel;
 sub createInitramfs;
 sub createUEFIBundle;
 sub execute;
+sub run;
 sub safeCopy;
 sub nonempty;
 sub cleanupMount;
@@ -344,6 +346,8 @@ my $initramfs;
 if ( enabled $config{EFI} or enabled $config{Components} ) {
   $initramfs = createInitramfs( $tempdir, $runConf{kernel_version} );
 }
+
+# run( qw(bash) );
 
 # Create a unified kernel/initramfs/command line EFI file
 if ( enabled $config{EFI} ) {
@@ -862,17 +866,10 @@ sub createInitramfs {
   my $command = join( ' ', @cmd );
   Log("Executing: $command");
 
-  my @output = execute(@cmd);
-  my $status = pop(@output);
+  my $status = run( $command );
   if ( $status eq 0 ) {
-    foreach my $line (@output) {
-      Log($line);
-    }
     return $output_file;
   } else {
-    foreach my $line (@output) {
-      print $line;
-    }
     print "Failed to create $output_file\n";
     exit $status;
   }
@@ -880,6 +877,11 @@ sub createInitramfs {
 
 sub execute {
   ( @_ = qx{@_ 2>&1}, $? >> 8 );
+}
+
+sub run {
+    run3(@_);
+    return $? >> 8;
 }
 
 sub safeCopy {

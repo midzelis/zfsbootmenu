@@ -1674,7 +1674,46 @@ cache_key() {
 }
 
 # arg1: ZFS filesystem
-# prints: nothing
+# prints: Prompt message, if needed
+# returns: 0 on success, 1 on failure
+#
+# NOTE: this function should *not* be called from a subshell
+
+prompt_key() {
+  local fs encroot key keyformat
+  fs=$1
+  encroot=$2
+  key=$3
+  keyformat=$4
+
+  # Run prompt hooks, if they exist
+  if [ ! -e /var/run/preprompt_ran ] && [ -d /libexec/preprompt.d ]; then
+    touch /var/run/preprompt_ran
+    for hook in /libexec/preprompt.d/*; do
+      [ -x "${hook}" ] || continue
+      zinfo "Processing hook: ${hook}"
+      "$hook" "$fs" "$encroot" "$key" "$keyformat"
+    done
+    unset hook
+  fi
+
+  if [ "${CLEAR_SCREEN}" -eq 1 ] ; then
+    tput clear
+    tput cup 0 0
+  fi
+
+  # Run custom prompt, if it exists
+  if [ -x /libexec/keyprompt.sh ]; then
+    zdebug "prompting for passphrase for $encroot using /libexec/keyprompt.sh"
+    /libexec/keyprompt.sh "$fs" "$encroot" "$key" "$keyformat"
+  else
+    zdebug "prompting for passphrase for $encroot"
+    zfs load-key -L prompt "$encroot"
+  fi
+}
+
+# arg1: ZFS filesystem
+# prints: Prompt message, if needed
 # returns: 0 on success, 1 on failure
 #
 # NOTE: this function should *not* be called from a subshell
@@ -1747,7 +1786,7 @@ load_key() {
     fi
   fi
 
-  # Otherwise, try to prompt for "passphrase" keys
+  # Otherwise, try to prompt for "passphrase" or "hex" keys with missing files
   keyformat="$( zfs get -H -o value keyformat "${encroot}" )" || keyformat=""
   if [ "${keyformat}" != "passphrase" ] && [ "${keyformat}" != "hex" ]; then
     zdebug "unable to load key with format ${keyformat} for ${encroot}"
@@ -1760,26 +1799,7 @@ load_key() {
   fi
 
   zdebug "prompting for key for ${encroot}"
-  printf "Found encrypted filesystem %s (encryptionroot=%s). To skip, press return.\n\n(Skipping unlock in 10 seconds...)\n\n" $fs $encroot
-  for i in $(seq 1 3); do
-    read -t 10 -sp "To unlock, enter $keyformat format key for $encroot:  " keyinput
-    if [ -z "$keyinput" ]; then
-      printf "\n\n"
-      return 1
-    fi
-    echo "$keyinput" | zfs load-key -L prompt "${encroot}"
-    ret=$?
-    printf "\n\n"
-    if (( $ret == 0 )); then
-      zdebug "saving manually prompted key ${encroot}"
-      keydir=$(dirname $key)
-      keyfile=$(basename $key)
-      mkdir -p /run/zbm_keys/$keydir
-      echo "$keyinput" > /run/zbm_keys/$keydir/$keyfile
-      break
-    fi
-  done
-  return $ret
+  prompt_key "$fs" "$encroot" "$key" "$keyformat" 
 }
 
 # arg1: ZFS filesystem
