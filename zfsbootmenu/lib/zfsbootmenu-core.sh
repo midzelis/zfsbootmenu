@@ -360,7 +360,6 @@ kexec_kernel() {
     unset tdhook
   fi
 
-  return 1
   if ! output="$( kexec -e -i 2>&1 )"; then
     zerror "kexec -e -i failed!"
     zerror "${output}"
