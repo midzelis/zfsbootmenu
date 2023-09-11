@@ -1,3 +1,8 @@
+This is supposed to be a way to easily combine fragments "recipes" into an image
+
+
+# Very out of date - ignore this!
+
 # Tailscale Enabled Unlocker for Native ZFS root encryption
 
 * Secure remote unlocking - Never stores keys anywhere! Handles Evil Maid Scenarios

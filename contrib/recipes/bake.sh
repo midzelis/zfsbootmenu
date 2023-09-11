@@ -22,10 +22,9 @@ init-void() {
 build() {
     set -x
     $cont run --rm -it \
-        -v "$(pwd)"/container-boot.d:/container-boot.d \
-        -v "$(pwd)"/container-stop.d:/container-stop.d \
-        -v "$(pwd)"/buildroot:/buildroot \
-        -v "$(pwd)"/../:/zfsbootmenu \
+        -v "$(pwd)"/build-start.sh:/container-boot.d/build-start.sh \
+        -v "$(pwd)"/build-stop.sh:/container-stop.d/build-stop.sh  \
+        -v "$(pwd)"/../../:/zfsbootmenu \
         -v "$(pwd)"/output:/build/build \
         -v /dev/net/tun:/dev/net/tun \
         --cap-add=NET_ADMIN  \
@@ -35,10 +34,9 @@ build() {
 # build an image - extra debug info
 build-debug() {
     $cont run --rm -it \
-        -v "$(pwd)"/container-boot.d:/container-boot.d \
-        -v "$(pwd)"/container-stop.d:/container-stop.d \
-        -v "$(pwd)"/buildroot:/buildroot \
-        -v "$(pwd)"/../:/zfsbootmenu \
+        -v "$(pwd)"/build-start.sh:/container-boot.d/build-start.sh \
+        -v "$(pwd)"/build-stop.sh:/container-stop.d/build-stop.sh  \
+        -v "$(pwd)"/../../:/zfsbootmenu \
         -v "$(pwd)"/output:/build/build \
         -v /dev/net/tun:/dev/net/tun \
         --cap-add=NET_ADMIN  \
@@ -47,10 +45,9 @@ build-debug() {
 # build an image - shell into builder image - you issue /build-init.sh to build
 build-shell() {
     $cont run --rm -it \
-        -v "$(pwd)"/container-boot.d:/container-boot.d \
-        -v "$(pwd)"/container-stop.d:/container-stop.d \
-        -v "$(pwd)"/buildroot:/buildroot \
-        -v "$(pwd)"/../:/zfsbootmenu \
+        -v "$(pwd)"/build-start.sh:/container-boot.d/build-start.sh \
+        -v "$(pwd)"/build-stop.sh:/container-stop.d/build-stop.sh  \
+        -v "$(pwd)"/../../:/zfsbootmenu \
         -v "$(pwd)"/output:/build/build \
         -v /dev/net/tun:/dev/net/tun \
         --cap-add=NET_ADMIN  \

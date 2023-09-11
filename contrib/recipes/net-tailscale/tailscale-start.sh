@@ -27,23 +27,28 @@ interfaces=$(ip link show | awk -F': ' '{print $2}')
 # Bring up each interface and get a DHCP IP address
 for interface in $interfaces; do
     [[ $interface == 'lo' ]] && continue
-    gum style --bold "Bringing up $interface"
-    ip link set "$interface" up
-    gum spin -s points --show-output --timeout=30s --title="Getting IP address using DHCP" -- dhclient -1 "$interface" -lf /var/lib/dhcp/dhclient.leases -v 
+    if gum spin -s points --show-output --timeout=30s --title="Bringing up $interface" -- \
+        ip link set "$interface" up; then
+        gum style --bold "[ SUCCESS ] Bringing up $interface"
+    else 
+        gum style --bold "[ FAILED ] Bringing up $interface"
+    fi
+    if gum spin -s points --show-output --timeout=30s --title="Getting IP address using DHCP" -- \
+        dhclient -1 "$interface" -lf /var/lib/dhcp/dhclient.leases -v; then
+        gum style --bold "[ SUCCESS ] Getting IP address using DHCP"
+    else 
+        gum style --bold "[ FAILED ] Getting IP address using DHCP"  
+    fi
 done
 
-mkdir -p /var/run
-mkdir -p /etc/dropbear
-gum style --bold "Starting SSH server"
-dropbear -R -s -j -k -p 
-# ln -sf /usr/sbin/iptables-legacy /etc/alternatives/iptables 
-# ln -sf /usr/sbin/iptables-legacy-save /etc/alternatives/iptables-save
-# ln -sf /usr/sbin/iptables-legacy-restore /etc/alternatives/iptables-restore
-# ln -sf /usr/sbin/ip6tables-legacy /etc/alternatives/ip6tables 
-# ln -sf /usr/sbin/ip6tables-legacy-save /etc/alternatives/ip6tables-save
-# ln -sf /usr/sbin/ip6tables-legacy-restore /etc/alternatives/ip6tables-restore
-
-gum style --bold "Starting tailscale"
 mkdir -p /var/log/tailscale
 tailscaled --statedir=/var/lib/tailscale > /var/log/tailscale/tailscale.log 2>&1 &
-tailscale up & 
+
+if gum spin -s points --timeout=30s --title="Starting Tailscale" -- \
+    tailscale up; then
+    gum style --bold "[ SUCCESS ] Starting SSH" 
+else 
+    gum style --bold "[ FAILED ] Starting SSH" 
+fi
+
+gum spin -s points --title="Remote access setup finished" -- sleep 1

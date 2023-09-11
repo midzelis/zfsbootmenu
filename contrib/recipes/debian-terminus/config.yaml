@@ -1,0 +1,9 @@
+Image:
+  zfsbootmenu_essential_binaries:
+    # base font stuff
+    - setfont
+  zfsbootmenu_optional_files: 
+    - /fonts/Terminus/PSF/**
+Hooks:
+  zfsbootmenu_earlysetup: 
+    - /zbm/contrib/recipes/debian-terminus/earlysetup-font.sh

@@ -1,0 +1,17 @@
+
+Image:
+  zfsbootmenu_essential_binaries:
+    # The following for ramkeys
+    - basename
+    - dirname
+    - seq
+    - df
+    - pax
+    - find
+    - zstd
+    - cpio
+    - gum
+  zfsbootmenu_keyprompt: /zbm/contrib/recipes/ramkeys/keyprompt.sh
+Hooks:
+  zfsbootmenu_before_kexec:
+    - /zbm/contrib/recipes/ramkeys/keyramcopy.sh

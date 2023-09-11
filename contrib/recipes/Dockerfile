@@ -39,7 +39,7 @@ RUN apt-get install -y \
     zfs-dkms zfsutils-linux zfs-zed \
     dracut git fzf systemd-boot \
     # tailscale 
-    tailscale dropbear dracut-network \
+    tailscale \
     # secure unlock
     pax zstd \
     # nice-to-have
@@ -61,7 +61,9 @@ RUN chmod +x /usr/bin/yq-go
 RUN cpan  'Sort::Versions' 'YAML::PP' 'boolean' 'IPC::Run3'
 
 # For testing: to create full partitions easy to put into qemu
-RUN apt-get install -y mtools iputils-ping netcat-traditional mbuffer pv strace  gum
+RUN apt-get install -y mtools iputils-ping netcat-traditional mbuffer pv strace gum kbd bsdextrautils gdisk parted dosfstools util-linux efibootmgr cryptsetup-bin xfonts-terminus isc-dhcp-client ncurses-bin
+
+RUN git clone https://github.com/powerline/fonts.git --depth=1 /fonts
 
 COPY build-init.sh /build-init.sh
 ENTRYPOINT [ "/build-init.sh" ]

@@ -136,6 +136,7 @@ install() {
   install_zbm_resources 1 inst_library zfsbootmenu_essential_libraries "failed to install essential library '%s'"
   install_zbm_resources 0 inst_library zfsbootmenu_optional_libraries "optional library '%s' not found, will omit"
 
+
   # Add libgcc_s as appropriate
   local _libgcc_s
   if ! _libgcc_s="$( find_libgcc_s )"; then
@@ -218,6 +219,9 @@ set -x
   # Install "teardown" hooks
   # shellcheck disable=SC2154
   install_zbm_hooks "$zfsbootmenu_teardown" teardown.d || _ret=$?
+  # Install "teardown" hooks
+  # shellcheck disable=SC2154
+  install_zbm_hooks "$zfsbootmenu_before_kexec" before_kexec.d || _ret=$?
 
   if [ ${_ret} -ne 0 ]; then
     dfatal "Unable to install core ZFSBootMenu functions"

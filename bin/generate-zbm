@@ -347,8 +347,6 @@ if ( enabled $config{EFI} or enabled $config{Components} ) {
   $initramfs = createInitramfs( $tempdir, $runConf{kernel_version} );
 }
 
-# run( qw(bash) );
-
 # Create a unified kernel/initramfs/command line EFI file
 if ( enabled $config{EFI} ) {
   my $unified_efi = createUEFIBundle( $tempdir, $runConf{kernel}, $initramfs );

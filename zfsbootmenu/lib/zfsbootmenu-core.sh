@@ -301,25 +301,22 @@ kexec_kernel() {
   cli_args="$( load_be_cmdline "${fs}" )"
   root_prefix="$( find_root_prefix "${fs}" "${mnt}" )"
   initrd="${mnt}${initramfs}"
-  patched_initrd="/tmp/$(basename "$initrd")-with-key"
 
-  if [ -d /libexec/process-initrd.d ]; then
-    # Create tmpfs 
-    cp "$initrd" "/tmp/$initrd"
-    for hook in /libexec/process-initrd.d/*; do
+  if [ -d /libexec/before_kexec.d ]; then
+    zdebug "calling before_kexec.d hooks"
+    # TODO: Create tmpfs? Or root is basically already in ram
+    mkdir -p "$(dirname "/tmp$initrd")"
+    cp "$initrd" "/tmp$initrd"
+    for hook in /libexec/before_kexec.d/*; do
       [ -x "${hook}" ] || continue
       zinfo "Processing hook: ${hook}"
       env "ZBM_SELECTED_INITRAMFS=${initramfs}" \
-        "ZBM_SELECTED_KERNEL=${kernel}" "ZBM_SELECTED_BE=${fs}" "${hook}" "/tmp/$initrd"
+        "ZBM_SELECTED_KERNEL=${kernel}" \
+        "ZBM_SELECTED_BE=${fs}" \
+        "${hook}" "/tmp/$initrd"
     done
+    initrd="/tmp/$initrd"
     unset hook
-  fi
-
-  if [ -d /run/zbm_keys ] && [[ "$(ls /run/zbm_keys)" ]]; then
-    zdebug "patching $initrd with user entered keys into $patched_initrd"
-    cp "$initrd" "$patched_initrd"
-    find /run/zbm_keys -depth -print | pax -s "/\/run\/zbm_keys//" -x sv4cpio -wd | zstd >> "$patched_initrd"
-    initrd="$patched_initrd"
   fi
 
   if ! output="$( kexec -a -l "${mnt}${kernel}" \
@@ -363,6 +360,7 @@ kexec_kernel() {
     unset tdhook
   fi
 
+  return 1
   if ! output="$( kexec -e -i 2>&1 )"; then
     zerror "kexec -e -i failed!"
     zerror "${output}"

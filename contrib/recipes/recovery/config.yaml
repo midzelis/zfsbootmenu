@@ -1,0 +1,25 @@
+Image:
+  zfsbootmenu_essential_binaries:
+    - clear
+    - reset
+    # debug
+    - strace
+    # - poweroff
+    # - reboot
+    # - shutdown
+  zfsbootmenu_optional_binaries:
+    # recovery stuff
+    - gdisk
+    - parted
+    - wipefs
+    - kpartx
+    - sgdisk
+    - mkfs.ext4
+    - mkfs.vfat
+    - efibootmgr
+    - cryptsetup
+    # just nice to have
+    - vi
+    - curl
+    - which
+    - du
