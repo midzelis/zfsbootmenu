@@ -822,7 +822,7 @@ sub createInitramfs {
   my $flagsKey;
 
   if ( $runConf{usecpio} ) {
-    push( @cmd, ( qw(mkinitcpio --config), $runConf{confd} ) );
+    push( @cmd, ( qw(mkinitcpio -v --config), $runConf{confd} ) );
     push( @cmd, qw(-v) ) if $runConf{debug};
 
     # Add hook directories as appropriate

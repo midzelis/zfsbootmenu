@@ -1,7 +1,0 @@
-xbps-packages:
- - tailscale
- - openssh
- - netcat
-mount: 
-  src: tailscaled.state 
-  dst: /var/lib/tailscale/tailscaled.state
