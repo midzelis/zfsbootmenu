@@ -1,4 +1,3 @@
-
 Image:
   zfsbootmenu_essential_binaries:
     # The following for ramkeys
@@ -11,7 +10,7 @@ Image:
     - zstd
     - cpio
     - gum
-  zfsbootmenu_keyprompt: /zbm/contrib/recipes/ramkeys/keyprompt.sh
+  zfsbootmenu_keyprompt: /zbm/contrib/cookbook/recipes/ramkeys/keyprompt.sh
 Hooks:
   zfsbootmenu_before_kexec:
-    - /zbm/contrib/recipes/ramkeys/keyramcopy.sh
+    - /zbm/contrib/cookbook/recipes/ramkeys/keyramcopy.sh

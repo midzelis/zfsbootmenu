@@ -1,0 +1,11 @@
+xbps-packages:
+ - gptfdisk
+ - parted
+ - util-linux
+ - vim
+ - curl
+ - efibootmgr
+ - dosfstools
+ - mtools
+ - strace
+ - kpartx

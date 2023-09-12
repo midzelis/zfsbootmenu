@@ -1,0 +1,5 @@
+xbps-packages:
+ - cpanminus
+ - dracut
+ - gummiboot-efistub
+ - binutils

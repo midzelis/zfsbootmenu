@@ -2,11 +2,7 @@ Image:
   zfsbootmenu_essential_binaries:
     - clear
     - reset
-    # debug
     - strace
-    # - poweroff
-    # - reboot
-    # - shutdown
   zfsbootmenu_optional_binaries:
     # recovery stuff
     - gdisk

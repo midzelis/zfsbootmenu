@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 mkdir -p /var/lib/dhcp
 mkdir -p /etc/dhcp
 touch /etc/fstab

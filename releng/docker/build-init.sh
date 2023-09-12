@@ -109,6 +109,19 @@ if [ "${#PACKAGES[@]}" -gt 0 ]; then
   xbps-install -Sy "${PACKAGES[@]}"
 fi
 
+if [ -d /zbm_alt ]; then
+  # if /zbm is a NFS bind mount and you are having problems with dracut due to 
+  # preserving permission ownership, you can alternatively mount to /zbm_source 
+  # and folder will be copied to /zbm
+  mkdir -p /zbm
+  cp -R /zbm_alt/* /zbm
+fi
+
+if [ -d /alt ]; then
+  # same as above, but for any file - the path of the file within this root is the destination
+  (cd /alt && find . -type f -exec cp --parents {} / \;)
+fi
+
 # shellcheck disable=SC2010
 if [ ! -d /zbm ] || ! ls -Aq /zbm 2>/dev/null | grep -q . >/dev/null 2>&1; then
   # /zbm is empty or does not exist, attempt to fetch the desired tag
@@ -126,6 +139,8 @@ fi
 ## Make sure major ZBM components exist at /zbm
 
 [ -x /zbm/bin/generate-zbm ] || error "missing executable /zbm/bin/generate-zbm"
+
+cpanm --notest --installdeps /zbm
 
 if [ -d /zbm/zfsbootmenu ]; then
   # With new structure, core library must be in /usr/share
@@ -222,4 +237,11 @@ for ceval in "${CONFIGEVALS[@]}"; do
     || error "failed to apply '${ceval}' to config"
 done
 
-exec /zbm/bin/generate-zbm "${GENARGS[@]}"
+
+if /zbm/bin/generate-zbm "${GENARGS[@]}"; then
+  # If a custom rc-stop.d exists, run every executable file therein
+  for rfile in /rc.stop.d/*; do
+    [ -x "${rfile}" ] || continue
+    ZBMOUTPUT=$ZBMOUTPUT "${rfile}" || error "failed to run rc.stop script ${rfile##*/}"
+  done
+fi

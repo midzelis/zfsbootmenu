@@ -42,6 +42,6 @@ Image:
     - xennet
 Hooks:
   zfsbootmenu_preprompt: 
-    - /zbm/contrib/recipes/net-tailscale/tailscale-start.sh
+    - /zbm/contrib/cookbook/recipes/net-tailscale/tailscale-start.sh
   zfsbootmenu_teardown:
-    - /zbm/contrib/recipes/net-tailscale/tailscale-stop.sh
+    - /zbm/contrib/cookbook/recipes/net-tailscale/tailscale-stop.sh
